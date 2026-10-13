@@ -10,6 +10,9 @@ AZUL='\033[0;34m'
 ROJO='\033[0;31m'
 NC='\033[0m' # Sin color
 
+# Texto del prompt del menú 'select'
+PS3="Elige una opción (1-4): "
+
 # --- FUNCIONES MODULARES ---
 
 funcion_backup() {
@@ -22,10 +25,15 @@ funcion_backup() {
     fi
     
     read -p "Ingresa la ruta de destino para el backup (ej: /home/usuario/backups): " destino
-    mkdir -p "$destino"
+    mkdir -p "$destino" || { 
+        echo -e "${ROJO}No se pudo crear el destino.${NC}"
+        read -p "Presiona Enter para continuar..."
+        return
+    }
     
     nombre_archivo="backup_$(date +%Y%m%d_%H%M%S).tar.gz"
-    tar -czf "$destino/$nombre_archivo" "$origen" 2>/dev/null
+    # -C evita el aviso de "Removing leading '/'" y los errores de tar se muestran en pantalla
+    tar -czf "$destino/$nombre_archivo" -C "$(dirname "$origen")" "$(basename "$origen")"
     
     if [ $? -eq 0 ]; then
         echo -e "${VERDE}Backup completado: $destino/$nombre_archivo${NC}"
@@ -42,8 +50,8 @@ funcion_limpieza() {
     sudo apt autoclean
     echo "Eliminando paquetes huérfanos..."
     sudo apt autoremove -y
-    echo "Limpiando archivos temporales..."
-    rm -rf /tmp/* 2>/dev/null
+    echo "Limpiando archivos temporales (más de 1 día)..."
+    sudo find /tmp -type f -mtime +1 -delete
     echo -e "${VERDE}Limpieza completada.${NC}"
     read -p "Presiona Enter para continuar..."
 }

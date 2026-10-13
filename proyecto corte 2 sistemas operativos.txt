@@ -1,0 +1,101 @@
+#!/bin/bash
+
+# ==========================================
+# Script de Administración Interactiva
+# ==========================================
+
+# Colores para que se vea bonito
+VERDE='\033[0;32m'
+AZUL='\033[0;34m'
+ROJO='\033[0;31m'
+NC='\033[0m' # Sin color
+
+# --- FUNCIONES MODULARES ---
+
+funcion_backup() {
+    echo -e "${AZUL}--- INICIANDO BACKUP ---${NC}"
+    read -p "Ingresa la carpeta que deseas respaldar (ej: /home/usuario/documentos): " origen
+    if [ ! -d "$origen" ]; then
+        echo -e "${ROJO}Error: La carpeta '$origen' no existe.${NC}"
+        read -p "Presiona Enter para continuar..."
+        return
+    fi
+    
+    read -p "Ingresa la ruta de destino para el backup (ej: /home/usuario/backups): " destino
+    mkdir -p "$destino"
+    
+    nombre_archivo="backup_$(date +%Y%m%d_%H%M%S).tar.gz"
+    tar -czf "$destino/$nombre_archivo" "$origen" 2>/dev/null
+    
+    if [ $? -eq 0 ]; then
+        echo -e "${VERDE}Backup completado: $destino/$nombre_archivo${NC}"
+    else
+        echo -e "${ROJO}Error al crear el backup.${NC}"
+    fi
+    read -p "Presiona Enter para continuar..."
+}
+
+funcion_limpieza() {
+    echo -e "${AZUL}--- INICIANDO LIMPIEZA DEL SISTEMA ---${NC}"
+    echo "Limpiando caché de apt..."
+    sudo apt clean
+    sudo apt autoclean
+    echo "Eliminando paquetes huérfanos..."
+    sudo apt autoremove -y
+    echo "Limpiando archivos temporales..."
+    rm -rf /tmp/* 2>/dev/null
+    echo -e "${VERDE}Limpieza completada.${NC}"
+    read -p "Presiona Enter para continuar..."
+}
+
+funcion_monitoreo() {
+    echo -e "${AZUL}--- MONITOREO DEL SISTEMA ---${NC}"
+    echo "Uso de CPU y Memoria:"
+    top -bn1 | head -n 5
+    echo ""
+    echo "Espacio en disco:"
+    df -h | grep -v tmpfs
+    echo ""
+    echo "Usuarios conectados:"
+    who
+    read -p "Presiona Enter para continuar..."
+}
+
+funcion_salir() {
+    echo -e "${VERDE}Saliendo del menú de administración. ¡Hasta luego!${NC}"
+    exit 0
+}
+
+# --- MENÚ INTERACTIVO ---
+# Se ejecuta en bucle hasta que el usuario elija salir
+while true; do
+    clear
+    echo "========================================="
+    echo "   MENÚ DE ADMINISTRACIÓN DEL SISTEMA    "
+    echo "========================================="
+    echo "Selecciona una opción:"
+    
+    # El comando 'select' genera el menú automáticamente
+    select opcion in "Realizar Backup" "Limpiar Sistema" "Monitorear Sistema" "Salir"; do
+        case $opcion in
+            "Realizar Backup")
+                funcion_backup
+                break
+                ;;
+            "Limpiar Sistema")
+                funcion_limpieza
+                break
+                ;;
+            "Monitorear Sistema")
+                funcion_monitoreo
+                break
+                ;;
+            "Salir")
+                funcion_salir
+                ;;
+            *)
+                echo -e "${ROJO}Opción no válida. Intenta de nuevo.${NC}"
+                ;;
+        esac
+    done
+done
